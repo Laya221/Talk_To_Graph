@@ -4,7 +4,7 @@ from langchain.chains import GraphCypherQAChain
 from langchain.prompts.prompt import PromptTemplate
 
 # Configure Cypher generation template
-CYPHER_GENERATION_TEMPLATE = """Task: Generate Cypher statement to query a graph database.
+CYPHER_GENERATION_TEMPLATE = """ Task: Generate Cypher statement to query a graph database.
 Instructions:
 Use only the provided relationship types and properties in the schema.
 Do not use any other relationship types or properties that are not provided.
