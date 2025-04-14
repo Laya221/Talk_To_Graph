@@ -42,7 +42,6 @@ User Question: {user_question}
 Rephrased Question:
 """
 
-
     
     agent = SpecificAgent.create_agent(
         prompt_template=prompt_template,
