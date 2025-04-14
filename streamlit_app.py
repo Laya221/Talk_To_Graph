@@ -28,6 +28,7 @@ OPENAI_API_KEY1 = os.getenv("OPENAI_API_KEY")
 OPENAI_API_KEY=OPENAI_API_KEY1.replace(cipher,"")
 GEMINI_API_KEY1 = os.getenv("GEMINI_API_KEY")
 GEMINI_API_KEY=GEMINI_API_KEY1.replace(cipher,"")
+
 # Function to fetch schema
 def fetch_current_schema(uri, username, password):
     driver = GraphDatabase.driver(uri, auth=(username, password))
@@ -45,11 +46,18 @@ full_schema = fetch_current_schema(NEO4J_URI, NEO4J_USERNAME, NEO4J_PASSWORD)
 if 'qa' not in st.session_state:
     st.session_state.qa = initialize_qa_chain(NEO4J_URI, NEO4J_USERNAME, NEO4J_PASSWORD, OPENAI_API_KEY)
 
+# Define lists of available models
+openai_models = ['gpt-4', 'chatgpt-4o-latest', 'gpt-4o']
+gemini_models = ['gemini-2.0-flash', 'gemini-1.5-pro']
+
+all_models = openai_models + gemini_models
+
+
 # Add model selection to sidebar
 with st.sidebar:
     model_option = st.selectbox(
         'Select Language Model',
-        ('gpt-4', 'chatgpt-4o-latest', 'gpt-4o', 'gemini-2.0-flash')
+        all_models
     )
     
     # Add enhancement toggles and model selections
@@ -57,7 +65,7 @@ with st.sidebar:
     if enable_enhancement:
         enhancement_model = st.selectbox(
             'Schema Enhancement Model',
-            ('gpt-4', 'chatgpt-4o-latest', 'gpt-4o', 'gemini-2.0-flash'),
+            all_models,
             key='enhancement_model'
         )
     
@@ -65,15 +73,18 @@ with st.sidebar:
     if enable_rephrase:
         rephrase_model = st.selectbox(
             'Question Rephrasing Model',
-            ('gpt-4', 'chatgpt-4o-latest', 'gpt-4o', 'gemini-2.0-flash'),
+            all_models,
             key='rephrase_model'
         )
 
 # Update LLM based on selected model
-if model_option in ['gpt-4', 'chatgpt-4o-latest', 'gpt-4o']:
+if model_option in openai_models:
     llm = ChatOpenAI(model=model_option, api_key=OPENAI_API_KEY)
-else:
+elif model_option in gemini_models:
     llm = ChatGoogleGenerativeAI(model=model_option, google_api_key=GEMINI_API_KEY)
+else:
+    st.error(f"Invalid model selected: {model_option}")
+    st.stop()  # Stop execution if an invalid model is selected
 
 # Update only the LLM component of the QA chain
 st.session_state.qa.cypher_generation_chain.llm = llm
@@ -103,8 +114,13 @@ if prompt := st.chat_input("Ask a question about your data..."):
                 original_prompt = prompt
                 try:
                     if enable_rephrase:
-                        api_key = GEMINI_API_KEY if rephrase_model == 'gemini-2.0-flash' else OPENAI_API_KEY
-                        provider = 'gemini' if rephrase_model == 'gemini-2.0-flash' else 'openai'
+                        if rephrase_model in gemini_models:
+                            api_key = GEMINI_API_KEY
+                            provider = 'gemini'
+                        else:
+                            api_key = OPENAI_API_KEY
+                            provider = 'openai'
+
                         prompt = rephrase_question_to_schema_terms(
                             schema=full_schema, 
                             user_question=prompt, 
@@ -119,16 +135,21 @@ if prompt := st.chat_input("Ask a question about your data..."):
                     response = {"result": f"Error in rephrasing question: {str(e)}"}
                 try:
                     if enable_enhancement:
-                        api_key = GEMINI_API_KEY if enhancement_model == 'gemini-2.0-flash' else OPENAI_API_KEY
-                        provider = 'gemini' if enhancement_model == 'gemini-2.0-flash' else 'openai'
-                        enhance = extract_and_format_schema(
+                         if enhancement_model in gemini_models:
+                            api_key = GEMINI_API_KEY
+                            provider = 'gemini'
+                         else:
+                            api_key = OPENAI_API_KEY
+                            provider = 'openai'
+                        
+                         enhance = extract_and_format_schema(
                             prompt, 
                             full_schema, 
                             enhancement_model, 
                             provider, 
                             api_key
                         )
-                        response = st.session_state.qa.invoke({"query": enhance+'\n'+prompt})
+                         response = st.session_state.qa.invoke({"query": enhance+'\n'+prompt})
                     else:
                         response = st.session_state.qa.invoke({"query": prompt})
                 except Exception as e:
