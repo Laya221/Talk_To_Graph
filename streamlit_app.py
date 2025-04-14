@@ -7,10 +7,12 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.callbacks import get_openai_callback
 from qa_chain import initialize_qa_chain
 from schema_utils import extract_and_format_schema
+from question_utils import rephrase_question_to_schema_terms
 
 # Load environment variables
 load_dotenv()
 cipher='hdhdjkks'
+
 # Configure page
 st.set_page_config(page_title="Neo4j Chat", page_icon="💬", layout="wide")
 
@@ -26,7 +28,6 @@ OPENAI_API_KEY1 = os.getenv("OPENAI_API_KEY")
 OPENAI_API_KEY=OPENAI_API_KEY1.replace(cipher,"")
 GEMINI_API_KEY1 = os.getenv("GEMINI_API_KEY")
 GEMINI_API_KEY=GEMINI_API_KEY1.replace(cipher,"")
-
 # Function to fetch schema
 def fetch_current_schema(uri, username, password):
     driver = GraphDatabase.driver(uri, auth=(username, password))
@@ -51,8 +52,22 @@ with st.sidebar:
         ('gpt-4', 'chatgpt-4o-latest', 'gpt-4o', 'gemini-2.0-flash')
     )
     
-    # Add enhancement toggle
+    # Add enhancement toggles and model selections
     enable_enhancement = st.checkbox('Enable Schema Enhancement', value=True)
+    if enable_enhancement:
+        enhancement_model = st.selectbox(
+            'Schema Enhancement Model',
+            ('gpt-4', 'chatgpt-4o-latest', 'gpt-4o', 'gemini-2.0-flash'),
+            key='enhancement_model'
+        )
+    
+    enable_rephrase = st.checkbox('Enable Question Rephrasing', value=True)
+    if enable_rephrase:
+        rephrase_model = st.selectbox(
+            'Question Rephrasing Model',
+            ('gpt-4', 'chatgpt-4o-latest', 'gpt-4o', 'gemini-2.0-flash'),
+            key='rephrase_model'
+        )
 
 # Update LLM based on selected model
 if model_option in ['gpt-4', 'chatgpt-4o-latest', 'gpt-4o']:
@@ -85,14 +100,39 @@ if prompt := st.chat_input("Ask a question about your data..."):
     with st.chat_message("assistant"):
         with st.spinner("Thinking..."):
             with get_openai_callback() as cb:
+                original_prompt = prompt
+                try:
+                    if enable_rephrase:
+                        api_key = GEMINI_API_KEY if rephrase_model == 'gemini-2.0-flash' else OPENAI_API_KEY
+                        provider = 'gemini' if rephrase_model == 'gemini-2.0-flash' else 'openai'
+                        prompt = rephrase_question_to_schema_terms(
+                            schema=full_schema, 
+                            user_question=prompt, 
+                            model=rephrase_model, 
+                            provider=provider, 
+                            api_key=api_key
+                        )
+                        st.write("Original question:", original_prompt)
+                        st.write("Rephrased question:", prompt)
+                        st.divider()
+                except Exception as e:
+                    response = {"result": f"Error in rephrasing question: {str(e)}"}
                 try:
                     if enable_enhancement:
-                        enhance = extract_and_format_schema(prompt, full_schema, "gemini-2.0-flash", "gemini", GEMINI_API_KEY)
+                        api_key = GEMINI_API_KEY if enhancement_model == 'gemini-2.0-flash' else OPENAI_API_KEY
+                        provider = 'gemini' if enhancement_model == 'gemini-2.0-flash' else 'openai'
+                        enhance = extract_and_format_schema(
+                            prompt, 
+                            full_schema, 
+                            enhancement_model, 
+                            provider, 
+                            api_key
+                        )
                         response = st.session_state.qa.invoke({"query": enhance+'\n'+prompt})
                     else:
                         response = st.session_state.qa.invoke({"query": prompt})
-                except:
-                    response={"result":"Please Rephrase Your Question!!!"}
+                except Exception as e:
+                    response = {"result": f"Error processing question: {str(e)}"}
                 
                 # Display response
                 st.write(response["result"])
