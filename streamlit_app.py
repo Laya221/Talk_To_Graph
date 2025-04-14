@@ -18,7 +18,7 @@ st.set_page_config(page_title="Neo4j Chat", page_icon="💬", layout="wide")
 # Initialize session state for chat history
 if "messages" not in st.session_state:
     st.session_state.messages = []
-cipher="layeeve"
+cipher="evelaya"
 # Load credentials from environment variables
 NEO4J_URI = os.getenv("NEO4J_URI")
 NEO4J_USERNAME = os.getenv("NEO4J_USERNAME")
@@ -48,7 +48,8 @@ if 'qa' not in st.session_state:
 with st.sidebar:
     model_option = st.selectbox(
         'Select Language Model',
-        ('gpt-4', 'chatgpt-4o-latest', 'gpt-4o', 'gemini-2.0-flash')
+        ('o3-mini-2025-01-31', 'gpt-4', 'chatgpt-4o-latest', 'gpt-4o', 'gemini-2.0-flash', 'gemini-1.5-pro'),
+        index=0
     )
     
     # Add enhancement toggles and model selections
@@ -56,20 +57,22 @@ with st.sidebar:
     if enable_enhancement:
         enhancement_model = st.selectbox(
             'Schema Enhancement Model',
-            ('gpt-4', 'chatgpt-4o-latest', 'gpt-4o', 'gemini-2.0-flash'),
-            key='enhancement_model'
+            ('o3-mini-2025-01-31', 'gpt-4', 'chatgpt-4o-latest', 'gpt-4o', 'gemini-2.0-flash', 'gemini-1.5-pro'),
+            key='enhancement_model',
+            index=0
         )
     
     enable_rephrase = st.checkbox('Enable Question Rephrasing', value=True)
     if enable_rephrase:
         rephrase_model = st.selectbox(
             'Question Rephrasing Model',
-            ('gpt-4', 'chatgpt-4o-latest', 'gpt-4o', 'gemini-2.0-flash'),
-            key='rephrase_model'
+            ('o3-mini-2025-01-31', 'gpt-4', 'chatgpt-4o-latest', 'gpt-4o', 'gemini-2.0-flash', 'gemini-1.5-pro'),
+            key='rephrase_model',
+            index=0
         )
 
 # Update LLM based on selected model
-if model_option in ['gpt-4', 'chatgpt-4o-latest', 'gpt-4o']:
+if model_option in ['o3-mini-2025-01-31','gpt-4', 'chatgpt-4o-latest', 'gpt-4o']:
     llm = ChatOpenAI(model=model_option, api_key=OPENAI_API_KEY)
 else:
     llm = ChatGoogleGenerativeAI(model=model_option, google_api_key=GEMINI_API_KEY)
