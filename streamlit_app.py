@@ -18,15 +18,14 @@ st.set_page_config(page_title="Neo4j Chat", page_icon="💬", layout="wide")
 # Initialize session state for chat history
 if "messages" not in st.session_state:
     st.session_state.messages = []
-cipher="evelaya"
+
 # Load credentials from environment variables
 NEO4J_URI = os.getenv("NEO4J_URI")
 NEO4J_USERNAME = os.getenv("NEO4J_USERNAME")
 NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD")
-OPENAI_API_KEY1 = os.getenv("OPENAI_API_KEY")
-OPENAI_API_KEY=OPENAI_API_KEY1.replace(cipher,"")
-GEMINI_API_KEY1 = os.getenv("GEMINI_API_KEY")
-GEMINI_API_KEY=GEMINI_API_KEY1.replace(cipher,"")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+
 # Function to fetch schema
 def fetch_current_schema(uri, username, password):
     driver = GraphDatabase.driver(uri, auth=(username, password))
