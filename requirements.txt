@@ -1,0 +1,11 @@
+
+Neo4j==5.28.1
+langchain_openai==0.3.11
+langchain_google_genai==2.1.2
+langchain== 0.3.21
+langchain_community==0.3.16
+dotenv
+streamlit
+
+
+
