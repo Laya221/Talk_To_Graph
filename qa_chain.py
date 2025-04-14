@@ -4,7 +4,7 @@ from langchain.chains import GraphCypherQAChain
 from langchain.prompts.prompt import PromptTemplate
 
 # Configure Cypher generation template
-CYPHER_GENERATION_TEMPLATE = """ Task: Generate Cypher statement to query a graph database.
+CYPHER_GENERATION_TEMPLATE = """Task: Generate Cypher statement to query a graph database.
 Instructions:
 Use only the provided relationship types and properties in the schema.
 Do not use any other relationship types or properties that are not provided.
@@ -50,6 +50,27 @@ def initialize_qa_chain(neo4j_uri, neo4j_username, neo4j_password, openai_api_ke
         verbose=True,
         cypher_prompt=CYPHER_GENERATION_PROMPT
     )
+    qa.qa_chain.prompt.template="""
+You are an assistant that helps to form nice and human understandable answers.
+The information part contains the provided information that you must use to construct an answer.
+The provided information is authoritative, you must never doubt it or try to use your internal knowledge to correct it.
+Make the answer sound as a response to the question. Do not mention that you based the result on the given information.
+Here is an example:
+
+Question: Which managers own Neo4j stocks?
+Context:[manager:CTL LLC, manager:JANE STREET GROUP LLC]
+Helpful Answer: CTL LLC, JANE STREET GROUP LLC owns Neo4j stocks.
+
+Follow this example when generating answers.
+If the provided information is empty, say that you don't know the answer.
+If the provided information does not help you to answer , Try to infer insights from current provided information.
+Output Must Be Natural Language.
+Information:
+{context}
+
+Question: {question}
+Helpful Answer:
+"""
     
     return qa
     
