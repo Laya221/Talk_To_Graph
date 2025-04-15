@@ -1,56 +1,88 @@
 from agent import SpecificAgent
+from neo4j import GraphDatabase
 
-def rephrase_question_to_schema_terms(
-    user_question: str,
-    schema: str,
-    api_key: str,
-    model: str,
-    provider: str 
-) -> str:
+# Function to fetch schema
+def fetch_current_schema(uri, username, password):
+    driver = GraphDatabase.driver(uri, auth=(username, password))
+    query = "CALL db.schema.visualization()"
+    with driver.session() as session:
+        result = session.run(query)
+        schema = result.data()
+    driver.close()
+    return schema
+def extract_and_format_schema(user_query: str, full_schema: str, model: str, provider: str, api_key: str) -> str:
+    # Step 1: Create agent to extract relevant part of the schema
+    extract_template = """
+    from this schema return only part related to questions.
+    Q:{user_question}
+
+    schema:
+    {schema}
+
+    Output must be only small schema with same names and elements.
+
+    schema:
     """
-    Rephrases a user question using schema-specific terminology.
 
-    Parameters:
-        user_question (str): The original user question.
-        schema (str): The schema containing the correct terminology.
-        api_key (str): API key for the LLM provider.
-        model (str): LLM model to use (default: 'gpt-4').
-        provider (str): API provider name (default: 'openai').
-
-    Returns:
-        str: Rephrased question aligned with schema terms.
-    """
-
-    prompt_template = """
-TASK: Rephrase the user's question to align with the terminology used in the schema, without changing the intent of the question. Replace user-provided words with corresponding schema terms where appropriate.
-
-Example 1:
-Schema term: "zone"
-User Question: "Which area has the highest revenue?"
-Rephrased: "Which zone has the highest revenue?"
-
-Example 2:
-Schema terms: "customer_id", "purchase_amount", "transaction_date"
-User Question: "What did the user buy, how much did they spend, and when?"
-Rephrased: "What did the customer_id buy, what was the purchase_amount, and what is the transaction_date?"
-
-schema:
-{schema}
-
-Only output the rephrased question.
-User Question: {user_question}
-Rephrased Question:
-"""
-
-
-    
-    agent = SpecificAgent.create_agent(
-        prompt_template=prompt_template,
+    extract_agent = SpecificAgent.create_agent(
+        prompt_template=extract_template,
         api_key=api_key,
         model=model,
         provider=provider,
         output_processing="ENHANCED_QUERY",
-        name="SchemaAwareRephrasingAgent"
+        name="RelevantSchemaExtractor"
     )
 
-    return agent.invoke(schema=schema, user_question=user_question)
+    # Step 2: Extract the related schema
+    relevant_schema = extract_agent.invoke(schema=full_schema, user_question=user_query)
+
+    # Step 3: Create agent to rewrite the schema into structured format
+    format_template = """
+    rewrite the schema to be like:
+    schema={{
+        "entities": {{
+            "Entity1": {{
+                "attributes": ["attribute1", "attribute2", "attribute3"],
+                "constraints": ["unique_attribute"]
+            }},
+            "Entity2": {{
+                "attributes": ["attribute4", "attribute5"],
+                "constraints": ["unique_attribute"],
+                "indexes": ["indexed_attribute"]
+            }},
+            "Entity3": {{
+                "attributes": ["attribute6", "attribute7", "attribute8"]
+            }},
+            "Entity4": {{
+                "attributes": ["attribute9", "attribute10"],
+                "indexes": ["indexed_attribute"]
+            }}
+        }},
+        "relationships": [
+            {{"type": "RELATION_TYPE1", "from": "Entity1", "to": "Entity2", "properties": ["property1"]}},
+            {{"type": "RELATION_TYPE2", "from": "Entity1", "to": "Entity3", "properties": ["property2", "property3"]}},
+            {{"type": "RELATION_TYPE3", "from": "Entity3", "to": "Entity4", "properties": ["property4", "property5"]}}
+        ]
+    }}
+
+    schema:
+    {schema}
+
+    Output must schema with same names and elements.
+
+    schema:
+    """
+
+    format_agent = SpecificAgent.create_agent(
+        prompt_template=format_template,
+        api_key=api_key,
+        model=model,
+        provider=provider,
+        output_processing="ENHANCED_QUERY",
+        name="SchemaFormatter"
+    )
+
+    # Step 4: Format the schema
+    formatted_schema = format_agent.invoke(schema=relevant_schema)
+
+    return formatted_schema
