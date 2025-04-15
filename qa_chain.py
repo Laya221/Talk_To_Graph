@@ -57,13 +57,12 @@ The provided information is authoritative, you must never doubt it or try to use
 Make the answer sound as a response to the question. Do not mention that you based the result on the given information.
 Here is an example:
 
-Question: Which managers own Neo4j stocks?
-Context:[manager:CTL LLC, manager:JANE STREET GROUP LLC]
-Helpful Answer: CTL LLC, JANE STREET GROUP LLC owns Neo4j stocks.
 
-Follow this example when generating answers.
-If the provided information is empty, say that you don't know the answer.
-If the provided information does not help you to answer , Try to infer insights from current provided information.
+Only If the provided information is empty, say that you don't know the answer.
+If there is provided information , be smart to extract answer. Do not say "I don't know".
+PLease read the whole provided information to generate answer.
+If there is provided information and you can not extract answer, tell user the information provided you have.
+use emojis.
 Output Must Be Natural Language.
 Information:
 {context}
