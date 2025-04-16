@@ -19,7 +19,8 @@ def rephrase_question_to_field_terms(
     Returns:
         str: Rephrased question aligned with field names or example values.
     """
-
+    if not fields_values:
+        return user_question
     prompt_template = """
 TASK:
 Rephrase the user's question by replacing parts of the question with corresponding field names or example values when there's a match in meaning. Use the field keys or values to make the question more aligned with database-friendly or schema-aware language, while preserving the original intent.
