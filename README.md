@@ -1,5 +1,5 @@
 # Telco Data Analysis Dashboard
-
+An intelligent graph database querying application that enables natural language interaction with Neo4j databases. Built with LangChain, Openai's models, and Gemini models, it translates user questions into precise Cypher queries, making complex graph data accessible through conversational interfaces.
 This is a Streamlit dashboard that visualizes telco data analysis, showing various metrics and insights about revenue, customer distribution, and growth patterns.
 
 ## Setup Instructions
